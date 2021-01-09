@@ -23,7 +23,7 @@ namespace API.Controllers
             }
             return Ok();
         }
-        [HttpGet("serverError")]
+        [HttpGet("servererror")]
         public ActionResult GetServerError()
         {
             var thing = _context.Products.Find(43);
