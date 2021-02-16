@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 import {
@@ -9,6 +9,7 @@ import {
   IBasketItem,
   IBasketTotals,
 } from '../shared/models/basket';
+import { IDeliveryMethod } from '../shared/models/deliveryMethod';
 import { IProduct } from '../shared/models/product';
 
 @Injectable({
@@ -20,10 +21,15 @@ export class BasketService {
   basket$ = this.basketSource.asObservable();
   private basketTotalSource = new BehaviorSubject<IBasketTotals>(null);
   basketTotal$ = this.basketTotalSource.asObservable();
+  shipping = 0;
 
   constructor(private http: HttpClient) {}
 
-  getBasket(id: string) {
+  setShippingPrice(deliveryMethod: IDeliveryMethod): void {
+    this.shipping = deliveryMethod.price;
+    this.calculateTotals();
+  }
+  getBasket(id: string): Observable<any> {
     return this.http.get(this.baseUrl + 'basket?id=' + id).pipe(
       map((basket: IBasket) => {
         this.basketSource.next(basket);
@@ -32,6 +38,7 @@ export class BasketService {
     );
   }
 
+  // tslint:disable: typedef
   setBasket(basket: IBasket) {
     return this.http.post(this.baseUrl + 'basket', basket).subscribe(
       (response: IBasket) => {
@@ -60,26 +67,24 @@ export class BasketService {
 
   incrementItemQuanity(item: IBasketItem) {
     const basket = this.getCurrentBasketValue();
-    const foundItemIndex = basket.items.findIndex(x => x.id === item.id);
+    const foundItemIndex = basket.items.findIndex((x) => x.id === item.id);
     basket.items[foundItemIndex].quantity++;
     this.setBasket(basket);
-
   }
   decrementItemQuanity(item: IBasketItem) {
     const basket = this.getCurrentBasketValue();
-    const foundItemIndex = basket.items.findIndex(x => x.id === item.id);
+    const foundItemIndex = basket.items.findIndex((x) => x.id === item.id);
     if (basket.items[foundItemIndex].quantity > 1) {
       basket.items[foundItemIndex].quantity--;
     } else {
       this.removeItemFromBasket(item);
     }
     this.setBasket(basket);
-    
   }
   removeItemFromBasket(item: IBasketItem) {
     const basket = this.getCurrentBasketValue();
-    if (basket.items.some(x => x.id === item.id)) {
-      basket.items = basket.items.filter(i => i.id !== item.id);
+    if (basket.items.some((x) => x.id === item.id)) {
+      basket.items = basket.items.filter((i) => i.id !== item.id);
       if (basket.items.length > 0) {
         this.setBasket(basket);
       } else {
@@ -88,13 +93,21 @@ export class BasketService {
     }
   }
   deleteBasket(basket: IBasket) {
-    return this.http.delete(this.baseUrl + 'basket?id=' + basket.id).subscribe(() => {
-      this.basketSource.next(null);
-      this.basketTotalSource.next(null);
-      localStorage.removeItem('basket_id');
-    }, error => {
-      console.log(error);
-    });
+    return this.http.delete(this.baseUrl + 'basket?id=' + basket.id).subscribe(
+      () => {
+        this.basketSource.next(null);
+        this.basketTotalSource.next(null);
+        localStorage.removeItem('basket_id');
+      },
+      (error) => {
+        console.log(error);
+      }
+    );
+  }
+  deleteLocalBasket(id: string) {
+    this.basketSource.next(null);
+    this.basketTotalSource.next(null);
+    localStorage.removeItem('basket_id');
   }
   private addOrUpdateItem(
     items: IBasketItem[],
@@ -114,11 +127,11 @@ export class BasketService {
   }
   private calculateTotals() {
     const basket = this.getCurrentBasketValue();
-    const shipping = 0;
-    const subtotal = basket.items.reduce((a, b) => b.price * b.quantity + a, 0)
+    const shipping = this.shipping;
+    const subtotal = basket.items.reduce((a, b) => b.price * b.quantity + a, 0);
     const total = subtotal + shipping;
 
-    this.basketTotalSource.next({shipping, total, subtotal})
+    this.basketTotalSource.next({ shipping, total, subtotal });
   }
   private createBasket(): IBasket {
     const basket = new Basket();
