@@ -10,7 +10,9 @@ export interface IOrder {
   buyerEmail: string;
   orderDate: string;
   shipToAddress: IAddress;
+  shippingPrice: number;
   deliveryMethod: string;
+  total: number;
   orderItems: IOrderItem[];
   subtotal: number;
   status: number;
@@ -23,5 +25,5 @@ export interface IOrderItem {
   productName: string;
   price: number;
   quantity: number;
-  id: number;
+  pictureUrl: string;
 }
