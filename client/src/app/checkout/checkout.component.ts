@@ -60,7 +60,7 @@ export class CheckoutComponent implements OnInit {
       this.checkoutForm
         .get('deliveryForm')
         .get('deliveryMethod')
-        .patchValue(basket.deliveryMethodId.toString());
+        .patchValue(basket.deliveryMethodId ? basket.deliveryMethodId.toString() : '');
     }
   }
 }
